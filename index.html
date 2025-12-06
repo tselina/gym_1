@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GymTracker Pro</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div id="app">
+        <!-- Dynamic Content will be injected here -->
+        <header class="top-bar">
+            <h1 id="page-title">Dashboard</h1>
+            <div id="header-actions"></div>
+        </header>
+
+        <main id="main-content" class="content-area">
+            <!-- Sheets / Pages go here -->
+            <div id="dashboard-view" class="view active">
+
+
+                <div class="section-header">
+                    <h3>Quick Actions</h3>
+                </div>
+                <div class="card-grid">
+                    <button class="action-card primary" onclick="app.startWorkout()">
+                        <div class="icon">+</div>
+                        <span>New Workout</span>
+                    </button>
+                    <button class="action-card" onclick="app.startFreeTraining()">
+                        <div class="icon">🏃</div>
+                        <span>Free Training</span>
+                    </button>
+                </div>
+
+                <div class="section-header">
+                    <h3>Recent History</h3>
+                </div>
+                <div id="recent-history-list" class="list-container">
+                    <!-- JS populated -->
+                    <div class="empty-state">No recent workouts</div>
+                </div>
+            </div>
+
+            <!-- Other views will be hidden by default -->
+            <div id="workout-view" class="view hidden"></div>
+            <div id="exercises-view" class="view hidden"></div>
+            <div id="plans-view" class="view hidden"></div>
+            <div id="reports-view" class="view hidden"></div>
+        </main>
+
+        <div id="toast-container"></div>
+        <nav class="bottom-nav">
+            <button class="nav-item active" onclick="app.navigate('dashboard')">
+                <span class="icon">🏠</span>
+                <span class="label">Home</span>
+            </button>
+            <button class="nav-item" onclick="app.navigate('plans')">
+                <span class="icon">📋</span>
+                <span class="label">Plans</span>
+            </button>
+            <button class="nav-item" onclick="app.navigate('exercises')">
+                <span class="icon">💪</span>
+                <span class="label">Exercises</span>
+            </button>
+            <button class="nav-item" onclick="app.navigate('reports')">
+                <span class="icon">📊</span>
+                <span class="label">Reports</span>
+            </button>
+        </nav>
+    </div>
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js');
+        }
+    </script>
+</body>
+
+</html>

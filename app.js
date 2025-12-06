@@ -73,7 +73,7 @@ const app = {
 
         const recent = this.data.workouts.slice(-3).reverse();
         if (recent.length === 0) {
-            historyList.innerHTML = '<div class="empty-state">No recent workouts</div>';
+            historyList.innerHTML = `<div class="empty-state">${t('no_recent_workouts')}</div>`;
             return;
         }
 
@@ -83,14 +83,14 @@ const app = {
             el.style.cursor = 'pointer';
             el.onclick = () => app.viewWorkoutDetails(w.id);
 
-            const date = new Date(w.startTime).toLocaleDateString();
+            const date = new Date(w.startTime).toLocaleDateString(currentLang);
             el.innerHTML = `
                 <div>
                     <div style="font-weight: 600">${this.escapeHtml(w.name || 'Workout')}</div>
                     <div style="font-size: 0.8rem; color: var(--text-muted)">${date}</div>
                 </div>
                 <div style="display:flex; align-items:center; gap: 10px">
-                    <div>${w.exercises ? w.exercises.length : 0} Ex</div>
+                    <div>${w.exercises ? w.exercises.length : 0} ${t('exercises')}</div>
                     <button class="btn" style="padding: 4px 8px; font-size: 0.8rem" onclick="event.stopPropagation(); app.reuseWorkout(${w.id})">↻</button>
                 </div>
             `;
@@ -145,15 +145,15 @@ const app = {
 
         const content = `
             <div class="section-header">
-                <h3>Select a Plan</h3>
+                <h3>${t('select_plan')}</h3>
             </div>
             <div class="card-grid">
                 ${plansHtml}
-                <button class="btn action-card" onclick="app.initiateWorkout(null)">Empty Workout</button>
+                <button class="btn action-card" onclick="app.initiateWorkout(null)">${t('empty_workout')}</button>
             </div>
         `;
 
-        this.showModal('Start Workout', content);
+        this.showModal(t('start_workout'), content);
     },
 
     startFreeTraining() {
@@ -161,7 +161,7 @@ const app = {
         const html = activities.map(a =>
             `<button class="btn action-card" onclick="app.initiateFreeWorkout('${a}')">${a}</button>`
         ).join('');
-        this.showModal('Free Training', `<div class="card-grid">${html}</div>`);
+        this.showModal(t('free_training'), `<div class="card-grid">${html}</div>`);
     },
 
     initiateFreeWorkout(activity) {
@@ -250,7 +250,7 @@ const app = {
 
         const w = this.data.activeWorkout;
         if (!w) {
-            view.innerHTML = '<div class="empty-state">No active workout</div>';
+            view.innerHTML = `<div class="empty-state">${t('no_active_workout', 'No active workout')}</div>`;
             return;
         }
 
@@ -261,14 +261,14 @@ const app = {
 
         view.innerHTML = `
             <div class="section-header">
-                <h3>Current Session</h3>
-                <button class="btn" style="color: var(--danger)" onclick="app.finishWorkout()">Finish</button>
+                <h3>${t('current_session')}</h3>
+                <button class="btn" style="color: var(--danger)" onclick="app.finishWorkout()">${t('finish')}</button>
             </div>
             <h2>${this.escapeHtml(w.name)}</h2>
             <div id="workout-exercises-list" class="list-container" style="margin-top: 20px;"></div>
             
             <div style="margin-top: 20px; text-align: center;">
-             <button class="btn" onclick="app.addExerciseToWorkout()">+ Add Exercise</button>
+             <button class="btn" onclick="app.addExerciseToWorkout()">+ ${t('add_exercise')}</button>
             </div>
         `;
 
@@ -287,8 +287,8 @@ const app = {
                 setsHtml += `
                     <div style="display: flex; gap: 8px; margin-top: 8px; align-items: center;">
                         <span style="width: 20px; color: var(--text-muted); font-size:0.8rem">${sIdx + 1}</span>
-                        <input type="number" value="${s.weight}" placeholder="kg" style="width: 60px; padding: 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main)" onchange="app.updateSet(${idx}, ${sIdx}, 'weight', this.value)">
-                        <input type="number" value="${s.reps}" placeholder="reps" style="width: 60px; padding: 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main)" onchange="app.updateSet(${idx}, ${sIdx}, 'reps', this.value)">
+                        <input type="number" value="${s.weight}" placeholder="${t('kg')}" style="width: 60px; padding: 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main)" onchange="app.updateSet(${idx}, ${sIdx}, 'weight', this.value)">
+                        <input type="number" value="${s.reps}" placeholder="${t('reps')}" style="width: 60px; padding: 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main)" onchange="app.updateSet(${idx}, ${sIdx}, 'reps', this.value)">
                         <input type="checkbox" style="width: 24px; height: 24px" ${s.completed ? 'checked' : ''} onchange="app.toggleSetComplete(${idx}, ${sIdx})">
                         <button class="btn" style="padding: 4px 8px; color: var(--danger)" onclick="app.removeSet(${idx}, ${sIdx})">×</button>
                     </div>
@@ -297,7 +297,7 @@ const app = {
 
             setsHtml += `
                 <div style="margin-top: 12px; text-align: right;">
-                    <button class="btn" style="padding: 4px 12px; font-size: 0.8rem; background: rgba(255,255,255,0.05)" onclick="app.addSet(${idx})">+ Set</button>
+                    <button class="btn" style="padding: 4px 12px; font-size: 0.8rem; background: rgba(255,255,255,0.05)" onclick="app.addSet(${idx})">+ ${t('set')}</button>
                 </div>
             `;
 
@@ -323,7 +323,7 @@ const app = {
     addExerciseNote(idx) {
         if (!this.data.activeWorkout) return;
         const ex = this.data.activeWorkout.exercises[idx];
-        const note = prompt("Add note for this execution:", ex.notes || "");
+        const note = prompt(t('prompts.add_note'), ex.notes || "");
         if (note !== null) {
             ex.notes = note;
             this.saveData();
@@ -334,26 +334,26 @@ const app = {
     renderFreeWorkout(view, w) {
         view.innerHTML = `
              <div class="section-header">
-                <h3>Free Training</h3>
-                <button class="btn" style="color: var(--danger)" onclick="app.finishWorkout()">Finish</button>
+                <h3>${t('free_training')}</h3>
+                <button class="btn" style="color: var(--danger)" onclick="app.finishWorkout()">${t('finish')}</button>
             </div>
             <h2>${this.escapeHtml(w.name)}</h2>
             
             <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 16px;">
                 <div>
-                    <label>Distance (km)</label>
+                    <label>${t('distance')} (km)</label>
                     <input type="number" step="0.1" value="${w.metrics.distance || ''}" onchange="app.updateFreeMetric('distance', this.value)">
                 </div>
                  <div>
-                    <label>Steps</label>
+                    <label>${t('steps')}</label>
                     <input type="number" value="${w.metrics.steps || ''}" onchange="app.updateFreeMetric('steps', this.value)">
                 </div>
                  <div>
-                    <label>Terrain / Conditions</label>
-                    <input type="text" placeholder="e.g. Hilly, Snow, Indoor" value="${this.escapeHtml(w.metrics.terrain || '')}" onchange="app.updateFreeMetric('terrain', this.value)">
+                    <label>${t('terrain')}</label>
+                    <input type="text" placeholder="${t('terrain')}" value="${this.escapeHtml(w.metrics.terrain || '')}" onchange="app.updateFreeMetric('terrain', this.value)">
                 </div>
                 <div>
-                    <label style="display: block; margin-bottom: 8px">Notes</label>
+                    <label style="display: block; margin-bottom: 8px">${t('notes')}</label>
                     <textarea rows="4" onchange="app.updateFreeMetric('notes', this.value)">${this.escapeHtml(w.notes || '')}</textarea>
                 </div>
             </div>
@@ -398,7 +398,7 @@ const app = {
 
     removeSet(exIdx, setIdx) {
         if (!this.data.activeWorkout) return;
-        if (!confirm('Remove set?')) return;
+        if (!confirm(t('confirm_remove_set'))) return;
 
         const ex = this.data.activeWorkout.exercises[exIdx];
         const removed = ex.setsData[setIdx];
@@ -417,7 +417,7 @@ const app = {
     },
 
     finishWorkout() {
-        if (!confirm('Finish workout?')) return;
+        if (!confirm(t('confirm_finish'))) return;
 
         const w = this.data.activeWorkout;
         w.endTime = Date.now();
@@ -432,7 +432,7 @@ const app = {
 
     addExerciseToWorkout() {
         const list = this.data.exercises.map(e => `${e.id}: ${e.name}`).join('\n');
-        const id = prompt(`Enter ID of exercise to add:\n${list}`);
+        const id = prompt(`${t('prompts.enter_exercise_id')}\n${list}`);
         if (id) {
             const ex = this.data.exercises.find(e => e.id === id || e.name === id);
             if (ex) {
@@ -451,15 +451,15 @@ const app = {
         const view = document.getElementById('plans-view');
         view.innerHTML = `
              <div class="section-header">
-                <h3>My Plans</h3>
-                <button class="btn btn-primary" onclick="app.createPlan()">+ New</button>
+                <h3>${t('my_plans')}</h3>
+                <button class="btn btn-primary" onclick="app.createPlan()">+ ${t('actions.new')}</button>
             </div>
             <div class="list-container">
                 ${this.data.plans.map(p => `
                     <div class="list-item">
                         <div>
                             <strong>${this.escapeHtml(p.name)}</strong>
-                            <div style="font-size: 0.8rem; color: var(--text-muted)">${p.exercises.length} Exercises</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted)">${p.exercises.length} ${t('exercises')}</div>
                         </div>
                         <div style="display:flex; gap: 8px">
                              <button class="btn" style="padding: 4px 8px" onclick="app.renderPlanEditor('${p.id}')">✏️</button>
@@ -472,7 +472,7 @@ const app = {
     },
 
     createPlan() {
-        const name = prompt("Plan Name:");
+        const name = prompt(t('plan_name'));
         if (name) {
             this.data.plans.push({
                 id: 'p-' + Date.now(),
@@ -485,7 +485,7 @@ const app = {
     },
 
     deletePlan(id) {
-        if (!confirm('Delete plan?')) return;
+        if (!confirm(t('confirm_delete_plan'))) return;
 
         const planIdx = this.data.plans.findIndex(p => p.id === id);
         if (planIdx === -1) return;
@@ -509,8 +509,8 @@ const app = {
         const view = document.getElementById('plans-view');
         view.innerHTML = `
             <div class="section-header">
-                <h3>Editing: ${this.escapeHtml(plan.name)}</h3>
-                <button class="btn" onclick="app.renderPlans()">Done</button>
+                <h3>${t('actions.edit')}: ${this.escapeHtml(plan.name)}</h3>
+                <button class="btn" onclick="app.renderPlans()">${t('actions.done')}</button>
             </div>
             <div class="list-container">
                 ${plan.exercises.map((e, idx) => {
@@ -536,7 +536,7 @@ const app = {
         }).join('')}
                 
                 <div style="margin-top: 20px; text-align: center;">
-                    <button class="btn btn-primary" onclick="app.addExerciseToPlan('${planId}')">+ Add Exercise</button>
+                    <button class="btn btn-primary" onclick="app.addExerciseToPlan('${planId}')">+ ${t('add_exercise')}</button>
                 </div>
             </div>
         `;
@@ -559,7 +559,7 @@ const app = {
     },
 
     removeExerciseFromPlan(planId, idx) {
-        if (!confirm('Remove exercise from plan?')) return;
+        if (!confirm(t('confirm_remove_exercise'))) return;
 
         const plan = this.data.plans.find(p => p.id === planId);
         if (plan) {
@@ -583,7 +583,7 @@ const app = {
 
     addExerciseToPlan(planId) {
         const list = this.data.exercises.map(e => `${e.id}: ${e.name}`).join('\n');
-        const id = prompt(`Enter ID of exercise to add:\n${list}`);
+        const id = prompt(`${t('prompts.enter_exercise_id')}\n${list}`);
         if (id) {
             const plan = this.data.plans.find(p => p.id === planId);
             const ref = this.data.exercises.find(e => e.id === id || e.name === id);
@@ -599,8 +599,8 @@ const app = {
         const view = document.getElementById('exercises-view');
         view.innerHTML = `
              <div class="section-header">
-                <h3>Library</h3>
-                <button class="btn btn-primary" onclick="app.createExercise()">+ New</button>
+                <h3>${t('library')}</h3>
+                <button class="btn btn-primary" onclick="app.createExercise()">+ ${t('actions.new')}</button>
             </div>
             <div class="list-container">
                 ${this.data.exercises.map(e => `
@@ -616,7 +616,7 @@ const app = {
     },
 
     createExercise() {
-        const name = prompt("Exercise Name:");
+        const name = prompt(t('exercise_name'));
         if (name) {
             this.data.exercises.push({
                 id: 'ex-' + Date.now(),
@@ -636,15 +636,15 @@ const app = {
 
         const content = `
             <div>
-                <label>Notes</label>
+                <label>${t('notes')}</label>
                 <textarea rows="3" id="edit-notes">${this.escapeHtml(ex.notes || '')}</textarea>
                 
-                <label style="margin-top: 10px; display:block">Video URL</label>
+                <label style="margin-top: 10px; display:block">${t('video_url')}</label>
                 <input type="text" id="edit-video" value="${this.escapeHtml(ex.video || '')}">
                 
-                ${ex.video ? `<a href="${this.escapeHtml(ex.video)}" target="_blank" style="display:block; margin-top:10px; color: var(--primary)">Watch Video</a>` : ''}
+                ${ex.video ? `<a href="${this.escapeHtml(ex.video)}" target="_blank" style="display:block; margin-top:10px; color: var(--primary)">${t('watch_video')}</a>` : ''}
                 
-                <button class="btn btn-primary" style="margin-top: 20px; width: 100%" onclick="app.saveExerciseInfo('${id}')">Save Changes</button>
+                <button class="btn btn-primary" style="margin-top: 20px; width: 100%" onclick="app.saveExerciseInfo('${id}')">${t('save_changes')}</button>
             </div>
         `;
         this.showModal(this.escapeHtml(ex.name), content);
@@ -666,16 +666,16 @@ const app = {
         const view = document.getElementById('reports-view');
 
         const historyHtml = this.data.workouts.slice().reverse().map(w => {
-            const date = new Date(w.startTime).toLocaleString(undefined, {
+            const date = new Date(w.startTime).toLocaleString(currentLang, {
                 weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
             });
 
             let summary = '';
             if (w.type === 'free') {
-                summary = `<span>${w.metrics.distance || 0} km</span> • <span>${w.metrics.steps || 0} steps</span>`;
+                summary = `<span>${w.metrics.distance || 0} km</span> • <span>${w.metrics.steps || 0} ${t('steps')}</span>`;
             } else {
                 const totalSets = w.exercises.reduce((acc, ex) => acc + (ex.setsData ? ex.setsData.length : 0), 0);
-                summary = `<span>${w.exercises.length} Exercises</span> • <span>${totalSets} Sets</span>`;
+                summary = `<span>${w.exercises.length} ${t('exercises')}</span> • <span>${totalSets} ${t('sets')}</span>`;
             }
 
             return `
@@ -693,10 +693,10 @@ const app = {
 
         view.innerHTML = `
             <div class="section-header">
-                <h3>Workout History</h3>
+                <h3>${t('workout_history')}</h3>
             </div>
             <div class="list-container">
-                ${historyHtml || '<div class="empty-state">No history yet</div>'}
+                ${historyHtml || `<div class="empty-state">${t('no_history_yet')}</div>`}
             </div>
         `;
     },
@@ -752,7 +752,7 @@ const app = {
                     compressed = sets.map(s => `${s.weight} ${s.reps}`).join('; ');
                 }
             } else {
-                compressed = 'Skipped';
+                compressed = t('skipped');
             }
 
             reportText += `${name}. ${compressed}\n`;
@@ -771,8 +771,8 @@ const app = {
             const prevW = currentIndex > 0 ? history[currentIndex - 1] : null;
 
             if (prevW) {
-                const prevDate = new Date(prevW.startTime).toLocaleDateString();
-                comparisonHtml += `<div style="margin-bottom: 8px; font-weight: bold; color: var(--secondary); margin-top:20px;">Vs Previous (${prevDate})</div>`;
+                const prevDate = new Date(prevW.startTime).toLocaleDateString(currentLang);
+                comparisonHtml += `<div style="margin-bottom: 8px; font-weight: bold; color: var(--secondary); margin-top:20px;">${t('vs_previous')} (${prevDate})</div>`;
 
                 sortedExercises.forEach(ex => {
                     const ref = this.data.exercises.find(e => e.id === ex.id);
@@ -790,13 +790,13 @@ const app = {
                         const maxPrev = Math.max(...(prevEx.setsData || []).map(s => Number(s.weight || 0)), 0);
 
                         diffHtml = `
-                          <div style="font-size: 0.8rem; color: var(--text-muted)">
-                            Vol: <strong>${volCur}</strong> <span style="color:${diffColor}">(${diffSign}${diff})</span> | 
-                            Max: <strong>${maxCur}</strong> (was ${maxPrev})
-                          </div>
-                       `;
+                              <div style="font-size: 0.8rem; color: var(--text-muted)">
+                                ${t('vol')}: <strong>${volCur}</strong> <span style="color:${diffColor}">(${diffSign}${diff})</span> | 
+                                ${t('max')}: <strong>${maxCur}</strong> (${t('was')} ${maxPrev})
+                              </div>
+                           `;
                     } else {
-                        diffHtml = `<div style="font-size: 0.8rem; color: var(--text-muted)">New exercise</div>`;
+                        diffHtml = `<div style="font-size: 0.8rem; color: var(--text-muted);">${t('new_exercise')}</div>`;
                     }
 
                     comparisonHtml += `

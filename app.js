@@ -59,7 +59,6 @@ const app = {
         if (target) target.classList.add('active');
 
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-        // specific nav item highlight logic could go here
 
         if (viewId === 'dashboard') this.renderDashboard();
         if (viewId === 'plans') this.renderPlans();
@@ -84,7 +83,7 @@ const app = {
             const date = new Date(w.startTime).toLocaleDateString();
             el.innerHTML = `
                 <div>
-                    <div style="font-weight: 600">${w.name || 'Workout'}</div>
+                    <div style="font-weight: 600">${this.escapeHtml(w.name || 'Workout')}</div>
                     <div style="font-size: 0.8rem; color: var(--text-muted)">${date}</div>
                 </div>
                 <div style="display:flex; align-items:center; gap: 10px">
@@ -104,17 +103,17 @@ const app = {
         const past = this.data.workouts.find(w => w.id === workoutId);
         if (!past) return;
 
-        // If it was based on a plan, use that plan to get the structure, but implies "Reuse" might mean "Retry same stats"?
-        // "conditions from point 3": use default values ... from previous same type workout.
-        // Reusing a workout IS the previous same type workout.
-        // So we can just clone the exercises and their sets as "pending".
+        // STRATEGY: "Reuse" means starting a valid new session but pre-filling it
+        // with the exact weights and reps from the selected past session.
+        // We clone the structure but reset 'completed' and 'finished' flags.
+        // This helps users who want to repeat a specific performance or use it as a base.
 
         const newExercises = past.exercises.map(e => ({
             id: e.id,
             setsData: e.setsData.map(s => ({
                 weight: s.weight,
                 reps: s.reps,
-                completed: false // Reset completion
+                completed: false // Important: User must manually check them off again
             })),
             notes: e.notes || ''
         }));
@@ -128,7 +127,7 @@ const app = {
             exercises: newExercises,
             finished: false,
             metrics: past.metrics ? { ...past.metrics } : undefined,
-            notes: '' // Reset main notes? Or keep? Usually reset.
+            notes: ''
         };
 
         this.saveData();
@@ -137,9 +136,8 @@ const app = {
 
     // --- WORKOUT LOGIC ---
     startWorkout() {
-        // Show plan selection modal or screen
         const plansHtml = this.data.plans.map(p =>
-            `<button class="btn action-card" onclick="app.initiateWorkout('${p.id}')">${p.name}</button>`
+            `<button class="btn action-card" onclick="app.initiateWorkout('${p.id}')">${this.escapeHtml(p.name)}</button>`
         ).join('');
 
         const content = `
@@ -156,7 +154,6 @@ const app = {
     },
 
     startFreeTraining() {
-        // For walking, skiing, etc
         const activities = ['Walking', 'Running', 'Skiing', 'Skating', 'Cycling'];
         const html = activities.map(a =>
             `<button class="btn action-card" onclick="app.initiateFreeWorkout('${a}')">${a}</button>`
@@ -171,7 +168,7 @@ const app = {
             name: activity,
             type: 'free',
             notes: '',
-            metrics: { distance: 0, duration: 0, steps: 0 } // placeholder
+            metrics: { distance: 0, duration: 0, steps: 0 }
         };
         this.saveData();
         this.closeModal();
@@ -186,17 +183,19 @@ const app = {
             const plan = this.data.plans.find(p => p.id === planId);
             if (plan) {
                 name = plan.name;
-
-                // Find last workout with this plan
+                // SMART DEFAULTS LOGIC:
+                // When starting a Plan, we look for the *last execution* of this specific plan.
+                // If found, we pre-fill the new workout's sets with the weights/reps used previously.
+                // This implements "Progressive Overload" tracking simply by showing what you did last time.
                 const lastWorkout = this.data.workouts.slice().reverse().find(w => w.planId === planId);
 
                 planExercises = plan.exercises.map(e => {
                     let initialSets = [];
-
                     if (lastWorkout) {
+                        // Match exercise in history by ID
                         const pastEx = lastWorkout.exercises.find(pe => pe.id === e.id);
                         if (pastEx && pastEx.setsData && pastEx.setsData.length > 0) {
-                            // Use previous weights/reps
+                            // Copy historical data as starting values
                             initialSets = pastEx.setsData.map(s => ({
                                 weight: s.weight,
                                 reps: s.reps,
@@ -205,7 +204,7 @@ const app = {
                         }
                     }
 
-                    // Fallback to plan defaults if no history
+                    // FALLBACK: If no history exists, use the Plan's default targets (set in Plan Editor)
                     if (initialSets.length === 0) {
                         const count = e.sets || 3;
                         for (let i = 0; i < count; i++) {
@@ -217,10 +216,7 @@ const app = {
                         }
                     }
 
-                    return {
-                        ...e,
-                        setsData: initialSets
-                    };
+                    return { ...e, setsData: initialSets };
                 });
             }
         }
@@ -240,12 +236,11 @@ const app = {
     },
 
     renderActiveWorkout() {
-        this.navigate('workout'); // We need to ensure a workout view exists or hijack one
+        this.navigate('workout');
         const view = document.getElementById('workout-view');
         view.classList.remove('hidden');
         view.classList.add('active');
 
-        // Hide others manually if needed or modify navigate
         document.querySelectorAll('.view').forEach(el => {
             if (el.id !== 'workout-view') el.classList.add('hidden');
         });
@@ -266,7 +261,7 @@ const app = {
                 <h3>Current Session</h3>
                 <button class="btn" style="color: var(--danger)" onclick="app.finishWorkout()">Finish</button>
             </div>
-            <h2>${w.name}</h2>
+            <h2>${this.escapeHtml(w.name)}</h2>
             <div id="workout-exercises-list" class="list-container" style="margin-top: 20px;"></div>
             
             <div style="margin-top: 20px; text-align: center;">
@@ -282,7 +277,6 @@ const app = {
             el.style.flexDirection = 'column';
             el.style.alignItems = 'stretch';
 
-            // Render sets as inputs
             let setsHtml = '';
             const setsData = ex.setsData || [];
 
@@ -298,7 +292,6 @@ const app = {
                 `;
             });
 
-            // Add Set Button
             setsHtml += `
                 <div style="margin-top: 12px; text-align: right;">
                     <button class="btn" style="padding: 4px 12px; font-size: 0.8rem; background: rgba(255,255,255,0.05)" onclick="app.addSet(${idx})">+ Set</button>
@@ -308,19 +301,17 @@ const app = {
             el.innerHTML = `
                 <div style="display: flex; justify-content: space-between; margin-bottom: 10px; align-items: flex-start;">
                     <div>
-                        <strong>${ref ? ref.name : 'Unknown'}</strong>
+                        <strong>${this.escapeHtml(ref ? ref.name : 'Unknown')}</strong>
                         ${(ex.sets || ex.reps) ? `<div style="font-size: 0.8rem; color: var(--secondary); margin-top: 2px;">Target: ${ex.sets || '?'} x ${ex.reps || '?'}</div>` : ''}
-                        ${ref && ref.notes ? `<div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">ℹ️ ${ref.notes}</div>` : ''}
+                        ${ref && ref.notes ? `<div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">ℹ️ ${this.escapeHtml(ref.notes)}</div>` : ''}
                     </div>
                     <div style="display:flex; gap: 8px">
                         <button class="btn" style="padding: 4px 8px; font-size: 0.8rem" onclick="app.addExerciseNote(${idx})">📝</button>
                         <button class="btn" style="padding: 4px 8px; font-size: 0.8rem" onclick="app.showExerciseInfo('${ex.id}')">⚙️</button>
                     </div>
                 </div>
-                ${ex.notes ? `<div style="font-size: 0.85rem; color: var(--primary); margin-bottom: 10px; font-style: italic; border-left: 2px solid var(--primary); padding-left: 8px;">"${ex.notes}"</div>` : ''}
-                <div>
-                   ${setsHtml}
-                </div>
+                ${ex.notes ? `<div style="font-size: 0.85rem; color: var(--primary); margin-bottom: 10px; font-style: italic; border-left: 2px solid var(--primary); padding-left: 8px;">"${this.escapeHtml(ex.notes)}"</div>` : ''}
+                <div>${setsHtml}</div>
             `;
             list.appendChild(el);
         });
@@ -343,27 +334,24 @@ const app = {
                 <h3>Free Training</h3>
                 <button class="btn" style="color: var(--danger)" onclick="app.finishWorkout()">Finish</button>
             </div>
-            <h2>${w.name}</h2>
+            <h2>${this.escapeHtml(w.name)}</h2>
             
             <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 16px;">
                 <div>
                     <label>Distance (km)</label>
                     <input type="number" step="0.1" value="${w.metrics.distance || ''}" onchange="app.updateFreeMetric('distance', this.value)">
                 </div>
-                
                  <div>
                     <label>Steps</label>
                     <input type="number" value="${w.metrics.steps || ''}" onchange="app.updateFreeMetric('steps', this.value)">
                 </div>
-
                  <div>
                     <label>Terrain / Conditions</label>
-                    <input type="text" placeholder="e.g. Hilly, Snow, Indoor" value="${w.metrics.terrain || ''}" onchange="app.updateFreeMetric('terrain', this.value)">
+                    <input type="text" placeholder="e.g. Hilly, Snow, Indoor" value="${this.escapeHtml(w.metrics.terrain || '')}" onchange="app.updateFreeMetric('terrain', this.value)">
                 </div>
-                
                 <div>
                     <label style="display: block; margin-bottom: 8px">Notes</label>
-                    <textarea rows="4" onchange="app.updateFreeMetric('notes', this.value)">${w.notes || ''}</textarea>
+                    <textarea rows="4" onchange="app.updateFreeMetric('notes', this.value)">${this.escapeHtml(w.notes || '')}</textarea>
                 </div>
             </div>
         `;
@@ -395,7 +383,6 @@ const app = {
     addSet(exIdx) {
         if (!this.data.activeWorkout) return;
         const ex = this.data.activeWorkout.exercises[exIdx];
-        // Copy previous set if exists, or blank
         const lastSet = ex.setsData.length > 0 ? ex.setsData[ex.setsData.length - 1] : null;
         ex.setsData.push({
             weight: lastSet ? lastSet.weight : '',
@@ -441,11 +428,10 @@ const app = {
     },
 
     addExerciseToWorkout() {
-        // Simple prompt for now, better UI later
         const list = this.data.exercises.map(e => `${e.id}: ${e.name}`).join('\n');
-        const id = prompt(`Enter ID of exercise to add:\n${list}`); // Quick MVP hack
+        const id = prompt(`Enter ID of exercise to add:\n${list}`);
         if (id) {
-            const ex = this.data.exercises.find(e => e.id === id || e.name === id); // strict id check or name
+            const ex = this.data.exercises.find(e => e.id === id || e.name === id);
             if (ex) {
                 this.data.activeWorkout.exercises.push({
                     id: ex.id,
@@ -469,7 +455,7 @@ const app = {
                 ${this.data.plans.map(p => `
                     <div class="list-item">
                         <div>
-                            <strong>${p.name}</strong>
+                            <strong>${this.escapeHtml(p.name)}</strong>
                             <div style="font-size: 0.8rem; color: var(--text-muted)">${p.exercises.length} Exercises</div>
                         </div>
                         <div style="display:flex; gap: 8px">
@@ -520,7 +506,7 @@ const app = {
         const view = document.getElementById('plans-view');
         view.innerHTML = `
             <div class="section-header">
-                <h3>Editing: ${plan.name}</h3>
+                <h3>Editing: ${this.escapeHtml(plan.name)}</h3>
                 <button class="btn" onclick="app.renderPlans()">Done</button>
             </div>
             <div class="list-container">
@@ -529,7 +515,7 @@ const app = {
             return `
                     <div class="list-item" style="flex-direction: column; align-items: stretch;">
                         <div style="display:flex; justify-content:space-between; margin-bottom: 8px">
-                            <strong>${ref ? ref.name : e.id}</strong>
+                            <strong>${this.escapeHtml(ref ? ref.name : e.id)}</strong>
                             <button class="btn" style="padding:2px 8px; color:var(--danger)" onclick="app.removeExerciseFromPlan('${planId}', ${idx})">×</button>
                         </div>
                         <div style="display:flex; gap: 10px;">
@@ -584,7 +570,7 @@ const app = {
                 if (p) {
                     p.exercises.splice(idx, 0, removed);
                     this.saveData();
-                    if (document.getElementById('plans-view').innerHTML.includes(p.name)) {
+                    if (document.getElementById('plans-view').innerHTML.includes(this.escapeHtml(p.name))) {
                         this.renderPlanEditor(planId);
                     }
                 }
@@ -617,7 +603,7 @@ const app = {
                 ${this.data.exercises.map(e => `
                     <div class="list-item" onclick="app.showExerciseInfo('${e.id}')">
                         <div>
-                            <strong>${e.name}</strong>
+                            <strong>${this.escapeHtml(e.name)}</strong>
                             <div style="font-size: 0.8rem; color: var(--text-muted)">${e.type}</div>
                         </div>
                     </div>
@@ -648,17 +634,17 @@ const app = {
         const content = `
             <div>
                 <label>Notes</label>
-                <textarea rows="3" id="edit-notes">${ex.notes || ''}</textarea>
+                <textarea rows="3" id="edit-notes">${this.escapeHtml(ex.notes || '')}</textarea>
                 
                 <label style="margin-top: 10px; display:block">Video URL</label>
-                <input type="text" id="edit-video" value="${ex.video || ''}">
+                <input type="text" id="edit-video" value="${this.escapeHtml(ex.video || '')}">
                 
-                ${ex.video ? `<a href="${ex.video}" target="_blank" style="display:block; margin-top:10px; color: var(--primary)">Watch Video</a>` : ''}
+                ${ex.video ? `<a href="${this.escapeHtml(ex.video)}" target="_blank" style="display:block; margin-top:10px; color: var(--primary)">Watch Video</a>` : ''}
                 
                 <button class="btn btn-primary" style="margin-top: 20px; width: 100%" onclick="app.saveExerciseInfo('${id}')">Save Changes</button>
             </div>
         `;
-        this.showModal(ex.name, content);
+        this.showModal(this.escapeHtml(ex.name), content);
     },
 
     saveExerciseInfo(id) {
@@ -668,7 +654,7 @@ const app = {
             ex.video = document.getElementById('edit-video').value;
             this.saveData();
             this.closeModal();
-            this.renderExercises(); // refresh if on that page
+            this.renderExercises();
         }
     },
 
@@ -692,7 +678,7 @@ const app = {
             return `
                 <div class="list-item" style="display:block; cursor: pointer" onclick="app.viewWorkoutDetails(${w.id})">
                     <div style="display:flex; justify-content:space-between; margin-bottom: 8px;">
-                        <strong>${w.name}</strong>
+                        <strong>${this.escapeHtml(w.name)}</strong>
                         <span style="color: var(--text-muted); font-size: 0.8rem">${date}</span>
                     </div>
                     <div style="font-size: 0.9rem; color: var(--text-muted); display: flex; gap: 10px;">
@@ -716,7 +702,170 @@ const app = {
         const w = this.data.workouts.find(x => x.id === workoutId);
         if (!w) return;
 
-        // Sort exercises: if linked to a plan, try to match plan order
+        // 1. GENERATE TEXT REPORT
+        const date = new Date(w.startTime);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        const dateStr = `${day}.${month}.${year}`;
+
+        let reportText = `${dateStr} ${w.name}\n\n`;
+
+        // Sort exercises
+        let sortedExercises = w.exercises.map((e, i) => ({ ...e, _origIdx: i }));
+        if (w.planId) {
+            const plan = this.data.plans.find(p => p.id === w.planId);
+            if (plan) {
+                const planOrder = plan.exercises.map(e => e.id);
+                sortedExercises.sort((a, b) => {
+                    const idxA = planOrder.indexOf(a.id);
+                    const idxB = planOrder.indexOf(b.id);
+                    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                    if (idxA !== -1) return -1;
+                    if (idxB !== -1) return 1;
+                    return 0;
+                });
+            }
+        }
+
+        sortedExercises.forEach(ex => {
+            const ref = this.data.exercises.find(e => e.id === ex.id);
+            const name = ref ? ref.name : 'Unknown';
+            const sets = ex.setsData || [];
+
+            // Compression Logic
+            let compressed = '';
+            // Only consider completed sets or all sets? User said "report", usually performed sets. But keeping all for now.
+            if (sets.length > 0) {
+                const weights = sets.map(s => s.weight);
+                const uniqueWeights = [...new Set(weights)];
+
+                if (uniqueWeights.length === 1) {
+                    // Case 1: Same weight
+                    const reps = sets.map(s => s.reps).join(', ');
+                    compressed = `${uniqueWeights[0]} ${reps}`;
+                } else {
+                    // Case 2: Mixed weights
+                    compressed = sets.map(s => `${s.weight} ${s.reps}`).join('; ');
+                }
+            } else {
+                compressed = 'Skipped';
+            }
+
+            reportText += `${name}. ${compressed}\n`;
+        });
+
+        // 2. COMPARISON SECTION
+        let comparisonHtml = '';
+        let graphHtml = '';
+
+        if (w.planId) {
+            const history = this.data.workouts
+                .filter(x => x.planId === w.planId)
+                .sort((a, b) => a.startTime - b.startTime);
+
+            const currentIndex = history.findIndex(x => x.id === w.id);
+            const prevW = currentIndex > 0 ? history[currentIndex - 1] : null;
+
+            if (prevW) {
+                const prevDate = new Date(prevW.startTime).toLocaleDateString();
+                comparisonHtml += `<div style="margin-bottom: 8px; font-weight: bold; color: var(--secondary); margin-top:20px;">Vs Previous (${prevDate})</div>`;
+
+                sortedExercises.forEach(ex => {
+                    const ref = this.data.exercises.find(e => e.id === ex.id);
+                    const prevEx = prevW.exercises.find(e => e.id === ex.id);
+
+                    let diffHtml = '';
+                    if (prevEx) {
+                        const volCur = (ex.setsData || []).reduce((a, s) => a + (Number(s.weight || 0) * Number(s.reps || 0)), 0);
+                        const volPrev = (prevEx.setsData || []).reduce((a, s) => a + (Number(s.weight || 0) * Number(s.reps || 0)), 0);
+                        const diff = volCur - volPrev;
+                        const diffColor = diff > 0 ? 'var(--success)' : (diff < 0 ? 'var(--danger)' : 'var(--text-muted)');
+                        const diffSign = diff > 0 ? '+' : '';
+
+                        const maxCur = Math.max(...(ex.setsData || []).map(s => Number(s.weight || 0)), 0);
+                        const maxPrev = Math.max(...(prevEx.setsData || []).map(s => Number(s.weight || 0)), 0);
+
+                        diffHtml = `
+                          <div style="font-size: 0.8rem; color: var(--text-muted)">
+                            Vol: <strong>${volCur}</strong> <span style="color:${diffColor}">(${diffSign}${diff})</span> | 
+                            Max: <strong>${maxCur}</strong> (was ${maxPrev})
+                          </div>
+                       `;
+                    } else {
+                        diffHtml = `<div style="font-size: 0.8rem; color: var(--text-muted)">New exercise</div>`;
+                    }
+
+                    comparisonHtml += `
+                       <div style="margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 4px;">
+                           <div style="font-weight: 600; font-size: 0.9rem">${this.escapeHtml(ref ? ref.name : 'Unknown')}</div>
+                           ${diffHtml}
+                       </div>
+                   `;
+                });
+            } else {
+                comparisonHtml = '<div style="font-size:0.8rem; font-style:italic; margin-top:20px;">No previous workout to compare.</div>';
+            }
+
+            // 3. GRAPH SECTION
+            graphHtml += `<div style="margin-bottom: 8px; font-weight: bold; color: var(--secondary); margin-top: 24px;">Volume Progression</div>`;
+            graphHtml += `<div style="display: flex; align-items: flex-end; height: 100px; gap: 4px; padding-top: 10px; overflow-x: auto;">`;
+
+            const recentHistory = history.slice(-15); // Show last 15
+            const volumes = recentHistory.map(h => {
+                return h.exercises.reduce((acc, e) => acc + (e.setsData || []).reduce((a, s) => a + (Number(s.weight || 0) * Number(s.reps || 0)), 0), 0);
+            });
+            const maxVol = Math.max(...volumes, 1);
+
+            recentHistory.forEach((h, i) => {
+                const vol = volumes[i];
+                const height = (vol / maxVol) * 100;
+                const isCurrent = h.id === w.id;
+                const dateObj = new Date(h.startTime);
+                const dateShort = `${dateObj.getDate()}/${dateObj.getMonth() + 1}`;
+                graphHtml += `
+                    <div style="display:flex; flex-direction: column; align-items: center; min-width: 30px; flex: 1;">
+                        <div style="font-size: 0.6rem; color: var(--text-muted); writing-mode: vertical-rl; transform: rotate(180deg); margin-bottom: 2px;">${vol > 0 ? vol : ''}</div>
+                        <div style="width: 100%; background: ${isCurrent ? 'var(--primary)' : 'rgba(255,255,255,0.1)'}; height: ${Math.max(height, 5)}%; border-radius: 4px 4px 0 0;" title="${dateShort}: ${vol}"></div>
+                        <div style="font-size: 0.6rem; color: var(--text-muted); margin-top: 4px">${dateShort}</div>
+                    </div>
+                `;
+            });
+            graphHtml += `</div>`;
+        }
+
+        const viewContent = `
+            <div style="max-height: 80vh; overflow-y: auto;">
+                <label style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Copyable Report</label>
+                <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: var(--radius-md); font-family: monospace; font-size: 0.9rem; white-space: pre-wrap; border: 1px solid var(--border); margin-bottom: 12px; user-select: all;" id="report-text-area">${this.escapeHtml(reportText)}</div>
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 24px;">
+                    <button class="btn btn-primary" onclick="app.copyReport()" style="flex:1">📋 Copy</button>
+                    <button class="btn" onclick="app.editWorkoutDetails(${w.id})" style="flex:1">✏️ Edit</button>
+                </div>
+                
+                <div style="background: var(--bg-surface); padding: 16px; border-radius: var(--radius-lg); border: 1px solid var(--border);">
+                    ${comparisonHtml}
+                    ${graphHtml}
+                </div>
+            </div>
+        `;
+
+        this.showModal(this.escapeHtml(w.name), viewContent);
+    },
+
+    copyReport() {
+        const text = document.getElementById('report-text-area').innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            this.showUndoToast('Copied to clipboard!', () => { });
+        });
+    },
+
+    editWorkoutDetails(workoutId) {
+        const w = this.data.workouts.find(x => x.id === workoutId);
+        if (!w) return;
+
+        // SORTING LOGIC: same as before
         let sortedExercises = w.exercises.map((e, i) => ({ ...e, _origIdx: i }));
 
         if (w.planId) {
@@ -741,9 +890,9 @@ const app = {
             return `
                 <div style="margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
                     <div style="display:flex; justify-content:space-between; margin-bottom: 8px;">
-                        <strong style="color: var(--primary)">${ref ? ref.name : 'Unknown Exercise'}</strong>
+                        <strong style="color: var(--primary)">${this.escapeHtml(ref ? ref.name : 'Unknown Exercise')}</strong>
                     </div>
-                    ${ex.notes ? `<div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; font-style: italic;">"${ex.notes}"</div>` : ''}
+                    ${ex.notes ? `<div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; font-style: italic;">"${this.escapeHtml(ex.notes)}"</div>` : ''}
                     <div style="display: flex; flex-direction: column; gap: 8px;">
                         ${sets.map((s, sIdx) => `
                             <div style="display: flex; gap: 8px; align-items: center;">
@@ -761,7 +910,6 @@ const app = {
 
         const freeDetails = w.type === 'free' ? `
             <div style="display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 20px;">
-                <!-- Could make free metrics editable too if needed, simplified for now -->
                 <div class="action-card" style="cursor: default; align-items: flex-start;">
                     <div style="font-size: 0.8rem; color: var(--text-muted)">Distance (km)</div>
                     <input type="number" step="0.1" value="${w.metrics.distance}" onchange="app.updateHistoryMetric(${w.id}, 'distance', this.value)">
@@ -772,18 +920,19 @@ const app = {
                 </div>
                  <div class="action-card" style="cursor: default; align-items: flex-start;">
                      <div style="font-size: 0.8rem; color: var(--text-muted)">Notes</div>
-                     <textarea rows="3" onchange="app.updateHistoryMetric(${w.id}, 'notes', this.value)">${w.notes || ''}</textarea>
+                     <textarea rows="3" onchange="app.updateHistoryMetric(${w.id}, 'notes', this.value)">${this.escapeHtml(w.notes || '')}</textarea>
                 </div>
             </div>
         ` : '';
 
         const content = `
             <div style="max-height: 70vh; overflow-y: auto;">
+                <button class="btn" style="margin-bottom:10px" onclick="app.viewWorkoutDetails(${w.id})">← Back to Report</button>
                 ${w.type === 'free' ? freeDetails : detailsHtml}
             </div>
         `;
 
-        this.showModal(w.name, content);
+        this.showModal(`Editing: ${this.escapeHtml(w.name)}`, content);
     },
 
     updateHistoryMetric(workoutId, key, val) {
@@ -796,6 +945,21 @@ const app = {
     },
 
     // --- UTILS ---
+
+    // SECURITY: XSS SANITIZATION
+    // Since we use innerHTML to render views (Virtual DOM-lite approach), we MUST sanitize
+    // any user-generated content (names, notes) to prevent Cross-Site Scripting attacks.
+    // This replaces special characters with HTML entities.
+    escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    },
+
     showModal(title, content) {
         let modal = document.getElementById('modal-overlay');
         if (!modal) {
@@ -826,6 +990,10 @@ const app = {
         if (modal) modal.remove();
     },
 
+    // UI: UNDO NOTIFICATION
+    // For destructive actions (delete), we offer a minimal "Toast" notification with an Undo button.
+    // This allows us to keep the UI clean (no confirmation modal for every small action if we chose purely undo, 
+    // though currently we use Confirm + Undo for maximum safety as requested).
     showUndoToast(msg, onUndo) {
         const container = document.getElementById('toast-container');
         const el = document.createElement('div');

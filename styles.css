@@ -268,6 +268,12 @@ select {
     font-size: 1rem;
 }
 
+/* Ensure options are always dark even if select (like lang switcher) is transparent */
+select option {
+    background-color: var(--bg-body);
+    color: var(--text-main);
+}
+
 input:focus,
 textarea:focus {
     outline: none;

@@ -80,6 +80,9 @@ const app = {
         recent.forEach(w => {
             const el = document.createElement('div');
             el.className = 'list-item';
+            el.style.cursor = 'pointer';
+            el.onclick = () => app.viewWorkoutDetails(w.id);
+
             const date = new Date(w.startTime).toLocaleDateString();
             el.innerHTML = `
                 <div>
@@ -88,7 +91,7 @@ const app = {
                 </div>
                 <div style="display:flex; align-items:center; gap: 10px">
                     <div>${w.exercises ? w.exercises.length : 0} Ex</div>
-                    <button class="btn" style="padding: 4px 8px; font-size: 0.8rem" onclick="app.reuseWorkout(${w.id})">↻</button>
+                    <button class="btn" style="padding: 4px 8px; font-size: 0.8rem" onclick="event.stopPropagation(); app.reuseWorkout(${w.id})">↻</button>
                 </div>
             `;
             historyList.appendChild(el);

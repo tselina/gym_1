@@ -636,6 +636,9 @@ const app = {
 
         const content = `
             <div>
+                <label>${t('exercise_name')}</label>
+                <input type="text" id="edit-name" value="${this.escapeHtml(ex.name || '')}" style="margin-bottom: 10px;">
+
                 <label>${t('notes')}</label>
                 <textarea rows="3" id="edit-notes">${this.escapeHtml(ex.notes || '')}</textarea>
                 
@@ -653,11 +656,27 @@ const app = {
     saveExerciseInfo(id) {
         const ex = this.data.exercises.find(e => e.id === id);
         if (ex) {
+            const newName = document.getElementById('edit-name').value;
+            if (newName && newName.trim() !== '') {
+                ex.name = newName.trim();
+            }
             ex.notes = document.getElementById('edit-notes').value;
             ex.video = document.getElementById('edit-video').value;
             this.saveData();
             this.closeModal();
             this.renderExercises();
+
+            if (document.getElementById('workout-view').classList.contains('active')) {
+                this.renderActiveWorkout();
+            }
+            // Also refresh plans view if active (though less likely to be editing exercise from there, unless we add that entry point)
+            if (document.getElementById('plans-view').classList.contains('active')) {
+                // If we are in plan editor, we should refresh it. 
+                // But we don't know which plan is being edited easily without storing state or looking at DOM.
+                // However, the user flow usually won't trigger this from plans view yet as there is no 'info' button there?
+                // Let's check renderPlanEditor...
+                // renderPlanEditor doesn't seem to have a button to open exercise info.
+            }
         }
     },
 

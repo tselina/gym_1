@@ -431,19 +431,8 @@ const app = {
     },
 
     addExerciseToWorkout() {
-        const list = this.data.exercises.map(e => `${e.id}: ${e.name}`).join('\n');
-        const id = prompt(`${t('prompts.enter_exercise_id')}\n${list}`);
-        if (id) {
-            const ex = this.data.exercises.find(e => e.id === id || e.name === id);
-            if (ex) {
-                this.data.activeWorkout.exercises.push({
-                    id: ex.id,
-                    setsData: []
-                });
-                this.saveData();
-                this.renderActiveWorkout();
-            }
-        }
+        if (!this.data.activeWorkout) return;
+        this.showExerciseSelector(null, this.data.activeWorkout.id);
     },
 
     // --- PLANS & EXERCISES ---
@@ -515,10 +504,18 @@ const app = {
             <div class="list-container">
                 ${plan.exercises.map((e, idx) => {
             const ref = this.data.exercises.find(x => x.id === e.id);
+            const isFirst = idx === 0;
+            const isLast = idx === plan.exercises.length - 1;
             return `
                     <div class="list-item" style="flex-direction: column; align-items: stretch;">
-                        <div style="display:flex; justify-content:space-between; margin-bottom: 8px">
-                            <strong>${this.escapeHtml(ref ? ref.name : e.id)}</strong>
+                        <div style="display:flex; justify-content:space-between; margin-bottom: 8px; align-items: flex-start;">
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <div class="reorder-controls">
+                                   ${!isFirst ? `<button class="reorder-btn" onclick="app.movePlanExercise('${planId}', ${idx}, -1)">▲</button>` : '<div style="height:16px; width:20px"></div>'}
+                                   ${!isLast ? `<button class="reorder-btn" onclick="app.movePlanExercise('${planId}', ${idx}, 1)">▼</button>` : '<div style="height:16px; width:20px"></div>'}
+                                </div>
+                                <strong>${this.escapeHtml(ref ? ref.name : e.id)}</strong>
+                            </div>
                             <button class="btn" style="padding:2px 8px; color:var(--danger)" onclick="app.removeExerciseFromPlan('${planId}', ${idx})">×</button>
                         </div>
                         <div style="display:flex; gap: 10px;">
@@ -582,15 +579,92 @@ const app = {
     },
 
     addExerciseToPlan(planId) {
-        const list = this.data.exercises.map(e => `${e.id}: ${e.name}`).join('\n');
-        const id = prompt(`${t('prompts.enter_exercise_id')}\n${list}`);
-        if (id) {
+        this.showExerciseSelector(planId, null);
+    },
+
+    movePlanExercise(planId, idx, direction) {
+        const plan = this.data.plans.find(p => p.id === planId);
+        if (!plan) return;
+
+        const newIdx = idx + direction;
+        if (newIdx < 0 || newIdx >= plan.exercises.length) return;
+
+        // Swap
+        const temp = plan.exercises[newIdx];
+        plan.exercises[newIdx] = plan.exercises[idx];
+        plan.exercises[idx] = temp;
+
+        this.saveData();
+        this.renderPlanEditor(planId);
+    },
+
+    showExerciseSelector(planId = null, workoutId = null) {
+        const content = `
+            <div>
+                <input type="text" id="exercise-search-input" placeholder="Search exercises..." 
+                    style="margin-bottom: 15px;" 
+                    onkeyup="app.filterExerciseSelector('${planId}', '${workoutId}')" autofocus>
+                
+                <div id="exercise-selector-results" class="exercise-selector-list">
+                    <!-- Populated by JS -->
+                </div>
+                
+                <div style="margin-top: 15px; text-align: center">
+                     <button class="btn" style="font-size: 0.9rem" onclick="app.createExercise(); app.closeModal()">+ Create New Exercise</button>
+                </div>
+            </div>
+        `;
+
+        this.showModal('Select Exercise', content);
+        // Focus input after render
+        setTimeout(() => {
+            const input = document.getElementById('exercise-search-input');
+            if (input) input.focus();
+            this.filterExerciseSelector(planId, workoutId); // Initial population
+        }, 100);
+    },
+
+    filterExerciseSelector(planId, workoutId) {
+        const input = document.getElementById('exercise-search-input');
+        if (!input) return;
+        const query = input.value.toLowerCase();
+        const container = document.getElementById('exercise-selector-results');
+
+        const matches = this.data.exercises.filter(e => e.name.toLowerCase().includes(query) || e.type.includes(query));
+
+        container.innerHTML = matches.map(e => `
+            <div class="exercise-selector-item" onclick="app.selectExerciseFromSelector('${e.id}', '${planId}', '${workoutId}')">
+                <div>
+                    <strong>${this.escapeHtml(e.name)}</strong>
+                    <span>${e.type}</span>
+                </div>
+                <div style="color: var(--primary); font-size: 1.2rem">+</div>
+            </div>
+        `).join('');
+
+        if (matches.length === 0) {
+            container.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--text-muted)">No exercises found</div>`;
+        }
+    },
+
+    selectExerciseFromSelector(exId, planId, workoutId) {
+        if (planId && planId !== 'null' && planId !== 'undefined') {
             const plan = this.data.plans.find(p => p.id === planId);
-            const ref = this.data.exercises.find(e => e.id === id || e.name === id);
-            if (plan && ref) {
-                plan.exercises.push({ id: ref.id, sets: 3, reps: 10 });
+            if (plan) {
+                plan.exercises.push({ id: exId, sets: 3, reps: 10 });
                 this.saveData();
+                this.closeModal();
                 this.renderPlanEditor(planId);
+            }
+        } else if (workoutId && workoutId !== 'null' && workoutId !== 'undefined') {
+            if (this.data.activeWorkout && this.data.activeWorkout.id === Number(workoutId)) {
+                this.data.activeWorkout.exercises.push({
+                    id: exId,
+                    setsData: []
+                });
+                this.saveData();
+                this.closeModal();
+                this.renderActiveWorkout();
             }
         }
     },

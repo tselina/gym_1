@@ -310,13 +310,72 @@ textarea:focus {
 }
 
 @keyframes slideUp {
-    from {
-        transform: translateY(20px);
-        opacity: 0;
-    }
-
     to {
         transform: translateY(0);
         opacity: 1;
     }
+}
+
+/* Exercise Selector in Modal */
+.exercise-selector-list {
+    max-height: 300px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.exercise-selector-item {
+    background: var(--bg-body);
+    border: 1px solid var(--border);
+    padding: 12px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: border-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.exercise-selector-item:hover {
+    border-color: var(--primary);
+}
+
+.exercise-selector-item strong {
+    display: block;
+    color: var(--text-main);
+}
+
+.exercise-selector-item span {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.reorder-controls {
+    display: flex;
+    flex-direction: column;
+    margin-right: 8px;
+    gap: 2px;
+}
+
+.reorder-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.6rem;
+    padding: 2px;
+    cursor: pointer;
+    border-radius: 4px;
+    width: 20px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.reorder-btn:hover {
+    background: var(--bg-body);
+    color: var(--primary);
 }

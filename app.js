@@ -132,6 +132,8 @@ const app = {
             metrics: past.metrics ? { ...past.metrics } : undefined,
             notes: ''
         };
+        // Ensure each exercise has collapsed flag
+        this.data.activeWorkout.exercises.forEach(ex => { ex.collapsed = false; });
 
         this.saveData();
         this.renderActiveWorkout();
@@ -219,7 +221,7 @@ const app = {
                         }
                     }
 
-                    return { ...e, setsData: initialSets };
+                    return { ...e, setsData: initialSets, collapsed: false };
                 });
             }
         }
@@ -280,28 +282,15 @@ const app = {
             el.style.flexDirection = 'column';
             el.style.alignItems = 'stretch';
 
-            let setsHtml = '';
-            const setsData = ex.setsData || [];
+            // Collapse toggle button
+            const collapseBtn = document.createElement('button');
+            collapseBtn.className = 'btn';
+            collapseBtn.style.marginLeft = 'auto';
+            collapseBtn.textContent = ex.collapsed ? '+' : '-';
+            collapseBtn.title = ex.collapsed ? t('expand') : t('collapse');
+            collapseBtn.onclick = () => app.toggleExerciseCollapse(idx);
 
-            setsData.forEach((s, sIdx) => {
-                setsHtml += `
-                    <div style="display: flex; gap: 8px; margin-top: 8px; align-items: center;">
-                        <span style="width: 20px; color: var(--text-muted); font-size:0.8rem">${sIdx + 1}</span>
-                        <input type="number" value="${s.weight}" placeholder="${t('kg')}" style="width: 60px; padding: 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main)" onchange="app.updateSet(${idx}, ${sIdx}, 'weight', this.value)">
-                        <input type="number" value="${s.reps}" placeholder="${t('reps')}" style="width: 60px; padding: 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main)" onchange="app.updateSet(${idx}, ${sIdx}, 'reps', this.value)">
-                        <input type="checkbox" style="width: 24px; height: 24px" ${s.completed ? 'checked' : ''} onchange="app.toggleSetComplete(${idx}, ${sIdx})">
-                        <button class="btn" style="padding: 4px 8px; color: var(--danger)" onclick="app.removeSet(${idx}, ${sIdx})">×</button>
-                    </div>
-                `;
-            });
-
-            setsHtml += `
-                <div style="margin-top: 12px; text-align: right;">
-                    <button class="btn" style="padding: 4px 12px; font-size: 0.8rem; background: rgba(255,255,255,0.05)" onclick="app.addSet(${idx})">+ ${t('set')}</button>
-                </div>
-            `;
-
-            el.innerHTML = `
+            let headerHtml = `
                 <div style="display: flex; justify-content: space-between; margin-bottom: 10px; align-items: flex-start;">
                     <div>
                         <strong>${this.escapeHtml(ref ? ref.name : 'Unknown')}</strong>
@@ -312,10 +301,33 @@ const app = {
                         <button class="btn" style="padding: 4px 8px; font-size: 0.8rem" onclick="app.addExerciseNote(${idx})">📝</button>
                         <button class="btn" style="padding: 4px 8px; font-size: 0.8rem" onclick="app.showExerciseInfo('${ex.id}')">⚙️</button>
                     </div>
-                </div>
+                    ${collapseBtn.outerHTML}
+                </div>`;
+
+            let setsHtml = '';
+            const setsData = ex.setsData || [];
+
+            if (!ex.collapsed) {
+                setsData.forEach((s, sIdx) => {
+                    setsHtml += `
+                        <div style="display: flex; gap: 8px; margin-top: 8px; align-items: center;">
+                            <span style="width: 20px; color: var(--text-muted); font-size:0.8rem">${sIdx + 1}</span>
+                            <input type="number" value="${s.weight}" placeholder="${t('kg')}" style="width: 60px; padding: 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main)" onchange="app.updateSet(${idx}, ${sIdx}, 'weight', this.value)"/>
+                            <input type="number" value="${s.reps}" placeholder="${t('reps')}" style="width: 60px; padding: 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main)" onchange="app.updateSet(${idx}, ${sIdx}, 'reps', this.value)"/>
+                            <input type="checkbox" style="width: 24px; height: 24px" ${s.completed ? 'checked' : ''} onchange="app.toggleSetComplete(${idx}, ${sIdx})"/>
+                            <button class="btn" style="padding: 4px 8px; color: var(--danger)" onclick="app.removeSet(${idx}, ${sIdx})">×</button>
+                        </div>`;
+                });
+
+                setsHtml += `
+                    <div style="margin-top: 12px; text-align: right;">
+                        <button class="btn" style="padding: 4px 12px; font-size: 0.8rem; background: rgba(255,255,255,0.05)" onclick="app.addSet(${idx})">+ ${t('set')}</button>
+                    </div>`;
+            }
+
+            el.innerHTML = `${headerHtml}
                 ${ex.notes ? `<div style="font-size: 0.85rem; color: var(--primary); margin-bottom: 10px; font-style: italic; border-left: 2px solid var(--primary); padding-left: 8px;">"${this.escapeHtml(ex.notes)}"</div>` : ''}
-                <div>${setsHtml}</div>
-            `;
+                <div>${setsHtml}</div>`;
             list.appendChild(el);
         });
     },
@@ -381,6 +393,15 @@ const app = {
         const set = this.data.activeWorkout.exercises[exIdx].setsData[setIdx];
         set.completed = !set.completed;
         this.saveData();
+    },
+
+    // Toggle collapse state for an exercise in the active workout
+    toggleExerciseCollapse(exIdx) {
+        if (!this.data.activeWorkout) return;
+        const ex = this.data.activeWorkout.exercises[exIdx];
+        ex.collapsed = !ex.collapsed;
+        this.saveData();
+        this.renderActiveWorkout();
     },
 
     addSet(exIdx) {
@@ -498,7 +519,9 @@ const app = {
         const view = document.getElementById('plans-view');
         view.innerHTML = `
             <div class="section-header">
-                <h3>${t('actions.edit')}: ${this.escapeHtml(plan.name)}</h3>
+                <h3>${t('actions.edit')}: </h3>
+                <input type="text" id="plan-name-input" value="${this.escapeHtml(plan.name)}" style="margin-left: 10px; padding: 4px;" />
+                <button class="btn" onclick="app.savePlanName('${planId}')">${t('save')}</button>
                 <button class="btn" onclick="app.renderPlans()">${t('actions.done')}</button>
             </div>
             <div class="list-container">
@@ -544,6 +567,18 @@ const app = {
         if (plan) {
             plan.exercises[idx][field] = val;
             this.saveData();
+        }
+    },
+
+    // Save edited plan name
+    savePlanName(planId) {
+        const plan = this.data.plans.find(p => p.id === planId);
+        if (!plan) return;
+        const input = document.getElementById('plan-name-input');
+        if (input && input.value.trim() !== '') {
+            plan.name = input.value.trim();
+            this.saveData();
+            this.renderPlanEditor(planId);
         }
     },
 
@@ -658,9 +693,19 @@ const app = {
             }
         } else if (workoutId && workoutId !== 'null' && workoutId !== 'undefined') {
             if (this.data.activeWorkout && this.data.activeWorkout.id === Number(workoutId)) {
+                // Find last execution of this exercise across all workouts
+                const lastWorkout = this.data.workouts.slice().reverse().find(w => w.exercises && w.exercises.some(e => e.id === exId));
+                let setsData = [];
+                if (lastWorkout) {
+                    const pastEx = lastWorkout.exercises.find(e => e.id === exId);
+                    if (pastEx && pastEx.setsData) {
+                        setsData = pastEx.setsData.map(s => ({ weight: s.weight, reps: s.reps, completed: false }));
+                    }
+                }
                 this.data.activeWorkout.exercises.push({
                     id: exId,
-                    setsData: []
+                    setsData: setsData,
+                    collapsed: false
                 });
                 this.saveData();
                 this.closeModal();

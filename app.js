@@ -283,12 +283,13 @@ const app = {
             el.style.alignItems = 'stretch';
 
             // Collapse toggle button
-            const collapseBtn = document.createElement('button');
-            collapseBtn.className = 'btn';
-            collapseBtn.style.marginLeft = 'auto';
-            collapseBtn.textContent = ex.collapsed ? '+' : '-';
-            collapseBtn.title = ex.collapsed ? t('expand') : t('collapse');
-            collapseBtn.onclick = () => app.toggleExerciseCollapse(idx);
+            const collapseBtnHtml = `
+                <button class="btn" 
+                        title="${ex.collapsed ? t('expand') : t('collapse')}" 
+                        style="margin-left: auto;" 
+                        onclick="app.toggleExerciseCollapse(${idx})">
+                    ${ex.collapsed ? '+' : '-'}
+                </button>`;
 
             let headerHtml = `
                 <div style="display: flex; justify-content: space-between; margin-bottom: 10px; align-items: flex-start;">
@@ -301,7 +302,7 @@ const app = {
                         <button class="btn" style="padding: 4px 8px; font-size: 0.8rem" onclick="app.addExerciseNote(${idx})">📝</button>
                         <button class="btn" style="padding: 4px 8px; font-size: 0.8rem" onclick="app.showExerciseInfo('${ex.id}')">⚙️</button>
                     </div>
-                    ${collapseBtn.outerHTML}
+                    ${collapseBtnHtml}
                 </div>`;
 
             let setsHtml = '';

@@ -60,7 +60,9 @@ const translations = {
         prompts: {
             add_note: "Add note for this execution:",
             enter_exercise_id: "Enter ID of exercise to add:"
-        }
+        },
+        collapse: "Collapse",
+        expand: "Expand"
     },
     uk: {
         app_title: "GymTracker Pro",
@@ -123,7 +125,9 @@ const translations = {
         prompts: {
             add_note: "Додати нотатку для цього виконання:",
             enter_exercise_id: "Введіть ID вправи для додавання:"
-        }
+        },
+        collapse: "Згорнути",
+        expand: "Розгорнути"
     },
     pl: {
         app_title: "GymTracker Pro",
@@ -186,7 +190,9 @@ const translations = {
         prompts: {
             add_note: "Dodaj notatkę do tego wykonania:",
             enter_exercise_id: "Wprowadź ID ćwiczenia do dodania:"
-        }
+        },
+        collapse: "Zwiń",
+        expand: "Rozwiń"
     }
 };
 

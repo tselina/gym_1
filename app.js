@@ -813,7 +813,7 @@ const app = {
             if (w.type === 'free') {
                 summary = `<span>${w.metrics.distance || 0} km</span> • <span>${w.metrics.steps || 0} ${t('steps')}</span>`;
             } else {
-                const totalSets = w.exercises.reduce((acc, ex) => acc + (ex.setsData ? ex.setsData.length : 0), 0);
+                const totalSets = w.exercises.reduce((acc, ex) => acc + (ex.setsData ? ex.setsData.filter(s => s.completed).length : 0), 0);
                 summary = `<span>${w.exercises.length} ${t('exercises')}</span> • <span>${totalSets} ${t('sets')}</span>`;
             }
 
@@ -873,22 +873,22 @@ const app = {
         sortedExercises.forEach(ex => {
             const ref = this.data.exercises.find(e => e.id === ex.id);
             const name = ref ? ref.name : 'Unknown';
-            const sets = ex.setsData || [];
+            const completedSets = (ex.setsData || []).filter(s => s.completed);
 
-            // Compression Logic
             let compressed = '';
-            // Only consider completed sets or all sets? User said "report", usually performed sets. But keeping all for now.
-            if (sets.length > 0) {
-                const weights = sets.map(s => s.weight);
-                const uniqueWeights = [...new Set(weights)];
+            if (completedSets.length > 0) {
+                const weights = completedSets.map(s => Number(s.weight || 0));
+                const allSameWeight = new Set(weights).size === 1;
 
-                if (uniqueWeights.length === 1) {
-                    // Case 1: Same weight
-                    const reps = sets.map(s => s.reps).join(', ');
-                    compressed = `${uniqueWeights[0]} ${reps}`;
+                if (allSameWeight) {
+                    const w = weights[0];
+                    const reps = completedSets.map(s => s.reps).join(', ');
+                    compressed = w > 0 ? `${w} ${t('kg')} ${reps}` : reps;
                 } else {
-                    // Case 2: Mixed weights
-                    compressed = sets.map(s => `${s.weight} ${s.reps}`).join('; ');
+                    compressed = completedSets.map(s => {
+                        const w = Number(s.weight || 0);
+                        return w > 0 ? `${s.weight} ${t('kg')} ${s.reps}` : s.reps;
+                    }).join('; ');
                 }
             } else {
                 compressed = t('skipped');
@@ -919,14 +919,14 @@ const app = {
 
                     let diffHtml = '';
                     if (prevEx) {
-                        const volCur = (ex.setsData || []).reduce((a, s) => a + (Number(s.weight || 0) * Number(s.reps || 0)), 0);
-                        const volPrev = (prevEx.setsData || []).reduce((a, s) => a + (Number(s.weight || 0) * Number(s.reps || 0)), 0);
+                        const volCur = (ex.setsData || []).filter(s => s.completed).reduce((a, s) => a + (Number(s.weight || 0) * Number(s.reps || 0)), 0);
+                        const volPrev = (prevEx.setsData || []).filter(s => s.completed).reduce((a, s) => a + (Number(s.weight || 0) * Number(s.reps || 0)), 0);
                         const diff = volCur - volPrev;
                         const diffColor = diff > 0 ? 'var(--success)' : (diff < 0 ? 'var(--danger)' : 'var(--text-muted)');
                         const diffSign = diff > 0 ? '+' : '';
 
-                        const maxCur = Math.max(...(ex.setsData || []).map(s => Number(s.weight || 0)), 0);
-                        const maxPrev = Math.max(...(prevEx.setsData || []).map(s => Number(s.weight || 0)), 0);
+                        const maxCur = Math.max(...(ex.setsData || []).filter(s => s.completed).map(s => Number(s.weight || 0)), 0);
+                        const maxPrev = Math.max(...(prevEx.setsData || []).filter(s => s.completed).map(s => Number(s.weight || 0)), 0);
 
                         diffHtml = `
                               <div style="font-size: 0.8rem; color: var(--text-muted)">
@@ -955,7 +955,7 @@ const app = {
 
             const recentHistory = history.slice(-15); // Show last 15
             const volumes = recentHistory.map(h => {
-                return h.exercises.reduce((acc, e) => acc + (e.setsData || []).reduce((a, s) => a + (Number(s.weight || 0) * Number(s.reps || 0)), 0), 0);
+                return h.exercises.reduce((acc, e) => acc + (e.setsData || []).filter(s => s.completed).reduce((a, s) => a + (Number(s.weight || 0) * Number(s.reps || 0)), 0), 0);
             });
             const maxVol = Math.max(...volumes, 1);
 

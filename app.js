@@ -313,8 +313,8 @@ const app = {
                     setsHtml += `
                         <div style="display: flex; gap: 8px; margin-top: 8px; align-items: center;">
                             <span style="width: 20px; color: var(--text-muted); font-size:0.8rem">${sIdx + 1}</span>
-                            <input type="number" value="${s.weight}" placeholder="${t('kg')}" style="width: 60px; padding: 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main)" onchange="app.updateSet(${idx}, ${sIdx}, 'weight', this.value)"/>
-                            <input type="number" value="${s.reps}" placeholder="${t('reps')}" style="width: 60px; padding: 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main)" onchange="app.updateSet(${idx}, ${sIdx}, 'reps', this.value)"/>
+                            <input type="number" value="${s.weight}" placeholder="${t('kg')}" style="width: 60px; padding: 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main)" oninput="app.updateSet(${idx}, ${sIdx}, 'weight', this.value)"/>
+                            <input type="number" value="${s.reps}" placeholder="${t('reps')}" style="width: 60px; padding: 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main)" oninput="app.updateSet(${idx}, ${sIdx}, 'reps', this.value)"/>
                             <input type="checkbox" style="width: 24px; height: 24px" ${s.completed ? 'checked' : ''} onchange="app.toggleSetComplete(${idx}, ${sIdx})"/>
                             <button class="btn" style="padding: 4px 8px; color: var(--danger)" onclick="app.removeSet(${idx}, ${sIdx})">×</button>
                         </div>`;
@@ -355,19 +355,19 @@ const app = {
             <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 16px;">
                 <div>
                     <label>${t('distance')} (km)</label>
-                    <input type="number" step="0.1" value="${w.metrics.distance || ''}" onchange="app.updateFreeMetric('distance', this.value)">
+                    <input type="number" step="0.1" value="${w.metrics.distance || ''}" oninput="app.updateFreeMetric('distance', this.value)">
                 </div>
                  <div>
                     <label>${t('steps')}</label>
-                    <input type="number" value="${w.metrics.steps || ''}" onchange="app.updateFreeMetric('steps', this.value)">
+                    <input type="number" value="${w.metrics.steps || ''}" oninput="app.updateFreeMetric('steps', this.value)">
                 </div>
                  <div>
                     <label>${t('terrain')}</label>
-                    <input type="text" placeholder="${t('terrain')}" value="${this.escapeHtml(w.metrics.terrain || '')}" onchange="app.updateFreeMetric('terrain', this.value)">
+                    <input type="text" placeholder="${t('terrain')}" value="${this.escapeHtml(w.metrics.terrain || '')}" oninput="app.updateFreeMetric('terrain', this.value)">
                 </div>
                 <div>
                     <label style="display: block; margin-bottom: 8px">${t('notes')}</label>
-                    <textarea rows="4" onchange="app.updateFreeMetric('notes', this.value)">${this.escapeHtml(w.notes || '')}</textarea>
+                    <textarea rows="4" oninput="app.updateFreeMetric('notes', this.value)">${this.escapeHtml(w.notes || '')}</textarea>
                 </div>
             </div>
         `;
@@ -545,11 +545,11 @@ const app = {
                         <div style="display:flex; gap: 10px;">
                             <div style="flex:1">
                                 <label style="font-size:0.7rem; color:var(--text-muted)">Sets</label>
-                                <input type="number" value="${e.sets || ''}" style="padding: 6px" onchange="app.updatePlanExercise('${planId}', ${idx}, 'sets', this.value)">
+                                <input type="number" value="${e.sets || ''}" style="padding: 6px" oninput="app.updatePlanExercise('${planId}', ${idx}, 'sets', this.value)">
                             </div>
                             <div style="flex:1">
                                 <label style="font-size:0.7rem; color:var(--text-muted)">Reps</label>
-                                <input type="number" value="${e.reps || ''}" style="padding: 6px" onchange="app.updatePlanExercise('${planId}', ${idx}, 'reps', this.value)">
+                                <input type="number" value="${e.reps || ''}" style="padding: 6px" oninput="app.updatePlanExercise('${planId}', ${idx}, 'reps', this.value)">
                             </div>
                         </div>
                     </div>
@@ -1039,9 +1039,9 @@ const app = {
                         ${sets.map((s, sIdx) => `
                             <div style="display: flex; gap: 8px; align-items: center;">
                                 <span style="width: 20px; color: var(--text-muted); font-size: 0.8rem">${sIdx + 1}</span>
-                                <input type="number" value="${s.weight}" style="width: 70px; padding: 6px" onchange="app.updateHistorySet(${w.id}, ${ex._origIdx}, ${sIdx}, 'weight', this.value)">
+                                <input type="number" value="${s.weight}" style="width: 70px; padding: 6px" oninput="app.updateHistorySet(${w.id}, ${ex._origIdx}, ${sIdx}, 'weight', this.value)">
                                 <span style="font-size: 0.8rem; color: var(--text-muted)">kg</span>
-                                <input type="number" value="${s.reps}" style="width: 70px; padding: 6px" onchange="app.updateHistorySet(${w.id}, ${ex._origIdx}, ${sIdx}, 'reps', this.value)">
+                                <input type="number" value="${s.reps}" style="width: 70px; padding: 6px" oninput="app.updateHistorySet(${w.id}, ${ex._origIdx}, ${sIdx}, 'reps', this.value)">
                                 <span style="font-size: 0.8rem; color: var(--text-muted)">reps</span>
                             </div>
                         `).join('')}
@@ -1054,15 +1054,15 @@ const app = {
             <div style="display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 20px;">
                 <div class="action-card" style="cursor: default; align-items: flex-start;">
                     <div style="font-size: 0.8rem; color: var(--text-muted)">Distance (km)</div>
-                    <input type="number" step="0.1" value="${w.metrics.distance}" onchange="app.updateHistoryMetric(${w.id}, 'distance', this.value)">
+                    <input type="number" step="0.1" value="${w.metrics.distance}" oninput="app.updateHistoryMetric(${w.id}, 'distance', this.value)">
                 </div>
                 <div class="action-card" style="cursor: default; align-items: flex-start;">
                     <div style="font-size: 0.8rem; color: var(--text-muted)">Steps</div>
-                     <input type="number" value="${w.metrics.steps || 0}" onchange="app.updateHistoryMetric(${w.id}, 'steps', this.value)">
+                     <input type="number" value="${w.metrics.steps || 0}" oninput="app.updateHistoryMetric(${w.id}, 'steps', this.value)">
                 </div>
                  <div class="action-card" style="cursor: default; align-items: flex-start;">
                      <div style="font-size: 0.8rem; color: var(--text-muted)">Notes</div>
-                     <textarea rows="3" onchange="app.updateHistoryMetric(${w.id}, 'notes', this.value)">${this.escapeHtml(w.notes || '')}</textarea>
+                     <textarea rows="3" oninput="app.updateHistoryMetric(${w.id}, 'notes', this.value)">${this.escapeHtml(w.notes || '')}</textarea>
                 </div>
             </div>
         ` : '';
